@@ -1,10 +1,15 @@
 #lines 1 - 86 written by Emma Wikingstad
-from fastapi import APIRouter, HTTPException
+#Rewritten to use SQLAlchemy ORM by Jonathan Torres
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from databasev1 import get_connection
-import time
+from sqlalchemy.orm import Session
+from datetime import datetime, date
+
+from db.database import get_db
+from db.models import Budget
 
 router = APIRouter(prefix="/budgets", tags=["Budgets"])
+
 
 class BudgetCreate(BaseModel):
     user_id: int
@@ -12,75 +17,86 @@ class BudgetCreate(BaseModel):
     period_end: str     # YYYY-MM-DD
     template_id: int | None = None
 
+
 class BudgetUpdate(BaseModel):
     period_start: str | None = None
     period_end: str | None = None
     template_id: int | None = None
 
-def now():
-    return time.strftime("%Y-%m-%d %H:%M:%S")
 
 @router.get("/")
-def list_budgets():
-    conn = get_connection()
-    rows = conn.execute("SELECT * FROM budgets").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+def list_budgets(session: Session = Depends(get_db)):
+    budgets = session.query(Budget).all()
+    return [
+        {
+            "budget_id": budget.budget_id,
+            "user_id": budget.user_id,
+            "period_start": str(budget.period_start),
+            "period_end": str(budget.period_end),
+            "template_id": budget.template_id,
+            "created_on": str(budget.created_on),
+            "updated_on": str(budget.updated_on),
+        }
+        for budget in budgets
+    ]
+
 
 @router.post("/")
-def create_budget(b: BudgetCreate):
-    conn = get_connection()
-    ts = now()
-    conn.execute(
-        """
-        INSERT INTO budgets (user_id, period_start, period_end, template_id, created_on, updated_on)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (b.user_id, b.period_start, b.period_end, b.template_id, ts, ts)
+def create_budget(budget_data: BudgetCreate, session: Session = Depends(get_db)):
+    timestamp = datetime.utcnow()
+    new_budget = Budget(
+        user_id=budget_data.user_id,
+        period_start=budget_data.period_start,
+        period_end=budget_data.period_end,
+        template_id=budget_data.template_id,
+        created_on=timestamp,
+        updated_on=timestamp,
     )
-    conn.commit()
-    conn.close()
+    session.add(new_budget)
+    session.commit()
     return {"message": "Budget created"}
 
+
 @router.get("/{budget_id}")
-def get_budget(budget_id: int):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM budgets WHERE budget_id = ?", (budget_id,)).fetchone()
-    conn.close()
-    if not row:
+def get_budget(budget_id: int, session: Session = Depends(get_db)):
+    budget = session.query(Budget).filter(Budget.budget_id == budget_id).first()
+    if not budget:
         raise HTTPException(404, "Budget not found")
-    return dict(row)
+    return {
+        "budget_id": budget.budget_id,
+        "user_id": budget.user_id,
+        "period_start": str(budget.period_start),
+        "period_end": str(budget.period_end),
+        "template_id": budget.template_id,
+        "created_on": str(budget.created_on),
+        "updated_on": str(budget.updated_on),
+    }
+
 
 @router.put("/{budget_id}")
-def update_budget(budget_id: int, update: BudgetUpdate):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM budgets WHERE budget_id = ?", (budget_id,)).fetchone()
-    if not row:
-        conn.close()
+def update_budget(budget_id: int, update: BudgetUpdate, session: Session = Depends(get_db)):
+    budget = session.query(Budget).filter(Budget.budget_id == budget_id).first()
+    if not budget:
         raise HTTPException(404, "Budget not found")
 
-    current = dict(row)
+    if update.period_start is not None:
+        budget.period_start = update.period_start
+    if update.period_end is not None:
+        budget.period_end = update.period_end
+    if update.template_id is not None:
+        budget.template_id = update.template_id
 
-    new_start = update.period_start or current["period_start"]
-    new_end = update.period_end or current["period_end"]
-    new_template = update.template_id if update.template_id is not None else current["template_id"]
-
-    conn.execute(
-        """
-        UPDATE budgets
-        SET period_start = ?, period_end = ?, template_id = ?, updated_on = ?
-        WHERE budget_id = ?
-        """,
-        (new_start, new_end, new_template, now(), budget_id)
-    )
-    conn.commit()
-    conn.close()
+    budget.updated_on = datetime.utcnow()
+    session.commit()
     return {"message": "Budget updated"}
 
+
 @router.delete("/{budget_id}")
-def delete_budget(budget_id: int):
-    conn = get_connection()
-    conn.execute("DELETE FROM budgets WHERE budget_id = ?", (budget_id,))
-    conn.commit()
-    conn.close()
+def delete_budget(budget_id: int, session: Session = Depends(get_db)):
+    budget = session.query(Budget).filter(Budget.budget_id == budget_id).first()
+    if not budget:
+        raise HTTPException(404, "Budget not found")
+
+    session.delete(budget)
+    session.commit()
     return {"message": "Budget deleted"}

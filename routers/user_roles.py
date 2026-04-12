@@ -1,35 +1,41 @@
 #lines 1-35 written by Emma Wikingstad
-from fastapi import APIRouter, HTTPException
+#Rewritten to use SQLAlchemy ORM by Jonathan Torres
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from databasev1 import get_connection
-import time
+from sqlalchemy.orm import Session
+from datetime import datetime
+
+from db.database import get_db
+from db.models import UserRole
 
 router = APIRouter(prefix="/user_roles", tags=["User Roles"])
+
 
 class UserRoleCreate(BaseModel):
     user_id: int
     role_id: int
 
-def now():
-    return time.strftime("%Y-%m-%d %H:%M:%S")
 
 @router.get("/")
-def list_user_roles():
-    conn = get_connection()
-    rows = conn.execute("SELECT * FROM User_Roles").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+def list_user_roles(session: Session = Depends(get_db)):
+    user_roles = session.query(UserRole).all()
+    return [
+        {
+            "user_id": role.user_id,
+            "role_id": role.role_id,
+            "updated_on": str(role.updated_on),
+        }
+        for role in user_roles
+    ]
+
 
 @router.post("/")
-def assign_role(ur: UserRoleCreate):
-    conn = get_connection()
-    conn.execute(
-        """
-        INSERT INTO User_Roles (user_id, role_id, updated_on)
-        VALUES (?, ?, ?)
-        """,
-        (ur.user_id, ur.role_id, now())
+def assign_role(role_data: UserRoleCreate, session: Session = Depends(get_db)):
+    new_role = UserRole(
+        user_id=role_data.user_id,
+        role_id=role_data.role_id,
+        updated_on=datetime.utcnow(),
     )
-    conn.commit()
-    conn.close()
+    session.add(new_role)
+    session.commit()
     return {"message": "Role assigned to user"}
