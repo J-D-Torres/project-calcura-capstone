@@ -1,9 +1,16 @@
 # Lines 1 - 39 written by Emma Wikingstad
+# Updated by Jonathan Torres
 from fastapi import FastAPI
 from routers import users, roles, permissions, user_roles, budgets, sessions, categories, templates, template_items
 from fastapi.middleware.cors import CORSMiddleware
 
+from db.database import engine, Base
+import db.models  # registers all ORM models with Base.metadata
+
 app = FastAPI()
+
+# Create all tables on startup (no-op if they already exist)
+Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
