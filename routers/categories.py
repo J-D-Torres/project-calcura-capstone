@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from db.database import get_db
 from db.models import Category
@@ -61,7 +61,7 @@ def list_categories(session: Session = Depends(get_db)):
 
 @router.post("/")
 def create_category(category_data: CategoryCreate, session: Session = Depends(get_db)):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     new_category = Category(
         user_id=category_data.user_id,
         name=category_data.name,
@@ -100,7 +100,7 @@ def update_category(category_id: int, update: CategoryUpdate, session: Session =
     if update.type is not None:
         category.type = update.type
 
-    category.updated_on = datetime.utcnow()
+    category.updated_on = datetime.now(timezone.utc)
     session.commit()
 
     new_name = category.name

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from db.database import get_db
 from db.models import TemplateItem
@@ -42,7 +42,7 @@ def list_template_items(session: Session = Depends(get_db)):
 
 @router.post("/")
 def create_template_item(item_data: TemplateItemCreate, session: Session = Depends(get_db)):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     new_item = TemplateItem(
         template_id=item_data.template_id,
         category_id=item_data.category_id,
@@ -84,7 +84,7 @@ def update_template_item(item_id: int, update: TemplateItemUpdate, session: Sess
     if update.item_name is not None:
         item.item_name = update.item_name
 
-    item.updated_on = datetime.utcnow()
+    item.updated_on = datetime.now(timezone.utc)
     session.commit()
     return {"message": "Template item updated"}
 

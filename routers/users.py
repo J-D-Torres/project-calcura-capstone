@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 
 from db.database import get_db
@@ -65,7 +65,7 @@ def create_user(user: UserCreate, session: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=409, detail="Email already in use")
 
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     new_user = User(
         name=user.name,
         email=user.email,
@@ -117,7 +117,7 @@ def update_user(user_id: int, user: UserUpdate, session: Session = Depends(get_d
     if user.email is not None:
         existing_user.email = user.email
 
-    existing_user.updated_on = datetime.utcnow()
+    existing_user.updated_on = datetime.now(timezone.utc)
     session.commit()
 
     return {"message": "User updated successfully", "user_id": user_id}

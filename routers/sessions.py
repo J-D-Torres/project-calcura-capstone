@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session as DbSession
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 
 from db.database import get_db
@@ -44,7 +44,7 @@ def list_sessions(session: DbSession = Depends(get_db)):
 def create_session(session_data: SessionCreate, session: DbSession = Depends(get_db)):
     new_session = SessionModel(
         user_id=session_data.user_id,
-        issued_on=datetime.utcnow(),
+        issued_on=datetime.now(timezone.utc),
         expires_on=session_data.expires_on,
         ip_address=session_data.ip_address,
         user_agent=session_data.user_agent,
@@ -93,7 +93,7 @@ def login(data: LoginRequest, session: DbSession = Depends(get_db)):
 
     new_session = SessionModel(
         user_id=user.user_id,
-        issued_on=datetime.utcnow(),
+        issued_on=datetime.now(timezone.utc),
         expires_on="2099-12-31 23:59:59",
         ip_address=None,
         user_agent=None,

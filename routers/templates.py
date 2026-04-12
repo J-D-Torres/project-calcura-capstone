@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from db.database import get_db
 from db.models import Template
@@ -61,7 +61,7 @@ def list_templates(session: Session = Depends(get_db)):
 
 @router.post("/")
 def create_template(template_data: TemplateCreate, session: Session = Depends(get_db)):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     new_template = Template(
         user_id=template_data.user_id,
         name=template_data.name,
@@ -105,7 +105,7 @@ def update_template(template_id: int, update: TemplateUpdate, session: Session =
     if update.is_default is not None:
         template.is_default = update.is_default
 
-    template.updated_on = datetime.utcnow()
+    template.updated_on = datetime.now(timezone.utc)
     session.commit()
 
     current_stage = template.stage_id

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 from db.database import get_db
 from db.models import Budget
@@ -13,14 +13,15 @@ router = APIRouter(prefix="/budgets", tags=["Budgets"])
 
 class BudgetCreate(BaseModel):
     user_id: int
-    period_start: str   # YYYY-MM-DD
-    period_end: str     # YYYY-MM-DD
+    # date type auto-parses "YYYY-MM-DD" strings from JSON into date objects
+    period_start: date
+    period_end: date
     template_id: int | None = None
 
 
 class BudgetUpdate(BaseModel):
-    period_start: str | None = None
-    period_end: str | None = None
+    period_start: date | None = None
+    period_end: date | None = None
     template_id: int | None = None
 
 
@@ -43,7 +44,7 @@ def list_budgets(session: Session = Depends(get_db)):
 
 @router.post("/")
 def create_budget(budget_data: BudgetCreate, session: Session = Depends(get_db)):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     new_budget = Budget(
         user_id=budget_data.user_id,
         period_start=budget_data.period_start,
@@ -86,7 +87,7 @@ def update_budget(budget_id: int, update: BudgetUpdate, session: Session = Depen
     if update.template_id is not None:
         budget.template_id = update.template_id
 
-    budget.updated_on = datetime.utcnow()
+    budget.updated_on = datetime.now(timezone.utc)
     session.commit()
     return {"message": "Budget updated"}
 

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from db.database import get_db
 from db.models import Role
@@ -41,7 +41,7 @@ def list_roles(session: Session = Depends(get_db)):
 
 @router.post("/")
 def create_role(role_data: RoleCreate, session: Session = Depends(get_db)):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     new_role = Role(
         name=role_data.name,
         description=role_data.description,

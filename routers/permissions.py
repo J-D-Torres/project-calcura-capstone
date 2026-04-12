@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from db.database import get_db
 from db.models import Permission
@@ -39,7 +39,7 @@ def list_permissions(session: Session = Depends(get_db)):
 
 @router.post("/")
 def create_permission(perm_data: PermissionCreate, session: Session = Depends(get_db)):
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
     new_permission = Permission(
         permission_id=perm_data.permission_id,
         name=perm_data.name,

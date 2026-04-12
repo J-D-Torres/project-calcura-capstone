@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from db.database import get_db
 from db.models import UserRole
@@ -34,7 +34,7 @@ def assign_role(role_data: UserRoleCreate, session: Session = Depends(get_db)):
     new_role = UserRole(
         user_id=role_data.user_id,
         role_id=role_data.role_id,
-        updated_on=datetime.utcnow(),
+        updated_on=datetime.now(timezone.utc),
     )
     session.add(new_role)
     session.commit()
