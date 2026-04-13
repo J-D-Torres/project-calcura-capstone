@@ -1,0 +1,29 @@
+# Example setup with Postgres. Replace with your own database or remove
+# the db service entirely and set DATABASE_URL to an external database.
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://calcura:calcura@db:5432/calcura
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=calcura
+      - POSTGRES_PASSWORD=calcura
+      - POSTGRES_DB=calcura
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calcura"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
