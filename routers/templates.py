@@ -1,8 +1,12 @@
 #lines 1 - 104 written by Emma Wikingstad
-from fastapi import APIRouter, HTTPException
-from databasev1 import get_connection
+#Rewritten to use SQLAlchemy ORM by Jonathan Torres
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, field_validator
-import time
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+
+from db.database import get_db
+from db.models import Template
 
 router = APIRouter(prefix="/templates", tags=["Templates"])
 
@@ -12,6 +16,7 @@ VALID_STAGES = {
     3: "retirement"
 }
 
+
 class TemplateCreate(BaseModel):
     user_id: int
     name: str
@@ -19,10 +24,11 @@ class TemplateCreate(BaseModel):
     is_default: bool = False
 
     @field_validator("stage_id")
-    def validate_stage(cls, v):
-        if v not in VALID_STAGES:
+    def validate_stage(cls, value):
+        if value not in VALID_STAGES:
             raise ValueError("stage_id must be 1 (young adult), 2 (career), or 3 (retirement)")
-        return v
+        return value
+
 
 class TemplateUpdate(BaseModel):
     name: str | None = None
@@ -30,86 +36,88 @@ class TemplateUpdate(BaseModel):
     is_default: bool | None = None
 
     @field_validator("stage_id")
-    def validate_stage(cls, v):
-        if v is not None and v not in VALID_STAGES:
+    def validate_stage(cls, value):
+        if value is not None and value not in VALID_STAGES:
             raise ValueError("stage_id must be 1 (young adult), 2 (career), or 3 (retirement)")
-        return v
+        return value
 
-def now():
-    return time.strftime("%Y-%m-%d %H:%M:%S")
 
 @router.get("/")
-def list_templates():
-    conn = get_connection()
-    try:
-        rows = conn.execute("SELECT * FROM templates").fetchall()
-        return [dict(r) for r in rows]
-    finally:
-        conn.close()
+def list_templates(session: Session = Depends(get_db)):
+    templates = session.query(Template).all()
+    return [
+        {
+            "template_id": template.template_id,
+            "user_id": template.user_id,
+            "name": template.name,
+            "stage_id": template.stage_id,
+            "is_default": template.is_default,
+            "created_on": str(template.created_on),
+            "updated_on": str(template.updated_on),
+        }
+        for template in templates
+    ]
+
 
 @router.post("/")
-def create_template(t: TemplateCreate):
-    conn = get_connection()
-    try:
-        ts = now()
-        # Calculate next sequential template_id (first template_id is 1)
-        existing = conn.execute("SELECT MAX(template_id) FROM templates").fetchone()
-        next_id = (existing[0] or 0) + 1
+def create_template(template_data: TemplateCreate, session: Session = Depends(get_db)):
+    timestamp = datetime.now(timezone.utc)
+    new_template = Template(
+        user_id=template_data.user_id,
+        name=template_data.name,
+        stage_id=template_data.stage_id,
+        is_default=template_data.is_default,
+        created_on=timestamp,
+        updated_on=timestamp,
+    )
+    session.add(new_template)
+    session.commit()
+    session.refresh(new_template)
+    return {"message": f"Template created for stage '{VALID_STAGES[template_data.stage_id]}'", "template_id": new_template.template_id}
 
-        conn.execute(
-            """
-            INSERT INTO templates (template_id, user_id, name, stage_id, is_default, created_on, updated_on)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (next_id, t.user_id, t.name, t.stage_id, t.is_default, ts, ts)
-        )
-        conn.commit()
-        return {"message": f"Template created for stage '{VALID_STAGES[t.stage_id]}'", "template_id": next_id}
-    finally:
-        conn.close()
 
 @router.get("/{template_id}")
-def get_template(template_id: int):
-    conn = get_connection()
-    try:
-        row = conn.execute("SELECT * FROM templates WHERE template_id = ?", (template_id,)).fetchone()
-        if not row:
-            raise HTTPException(404, "Template not found")
-        return dict(row)
-    finally:
-        conn.close()
+def get_template(template_id: int, session: Session = Depends(get_db)):
+    template = session.query(Template).filter(Template.template_id == template_id).first()
+    if not template:
+        raise HTTPException(404, "Template not found")
+    return {
+        "template_id": template.template_id,
+        "user_id": template.user_id,
+        "name": template.name,
+        "stage_id": template.stage_id,
+        "is_default": template.is_default,
+        "created_on": str(template.created_on),
+        "updated_on": str(template.updated_on),
+    }
+
 
 @router.put("/{template_id}")
-def update_template(template_id: int, update: TemplateUpdate):
-    conn = get_connection()
-    try:
-        row = conn.execute("SELECT * FROM templates WHERE template_id = ?", (template_id,)).fetchone()
-        if not row:
-            raise HTTPException(404, "Template not found")
+def update_template(template_id: int, update: TemplateUpdate, session: Session = Depends(get_db)):
+    template = session.query(Template).filter(Template.template_id == template_id).first()
+    if not template:
+        raise HTTPException(404, "Template not found")
 
-        current = dict(row)
+    if update.name is not None:
+        template.name = update.name
+    if update.stage_id is not None:
+        template.stage_id = update.stage_id
+    if update.is_default is not None:
+        template.is_default = update.is_default
 
-        new_name = update.name or current["name"]
-        new_stage = update.stage_id if update.stage_id is not None else current["stage_id"]
-        new_default = update.is_default if update.is_default is not None else current["is_default"]
+    template.updated_on = datetime.now(timezone.utc)
+    session.commit()
 
-        conn.execute(
-            """
-            UPDATE templates
-            SET name = ?, stage_id = ?, is_default = ?, updated_on = ?
-            WHERE template_id = ?
-            """,
-            (new_name, new_stage, new_default, now(), template_id)
-        )
-        conn.commit()
-        return {"message": f"Template updated (stage: {VALID_STAGES[new_stage]})"}
-    finally:
-        conn.close()
+    current_stage = template.stage_id
+    return {"message": f"Template updated (stage: {VALID_STAGES[current_stage]})"}
+
 
 @router.delete("/{template_id}")
-def delete_template(template_id: int):
-    conn = get_connection()
-    conn.execute("DELETE FROM templates WHERE template_id = ?", (template_id,))
-    conn.commit()
-    conn.close()
+def delete_template(template_id: int, session: Session = Depends(get_db)):
+    template = session.query(Template).filter(Template.template_id == template_id).first()
+    if not template:
+        raise HTTPException(404, "Template not found")
+
+    session.delete(template)
+    session.commit()
     return {"message": "Template deleted"}

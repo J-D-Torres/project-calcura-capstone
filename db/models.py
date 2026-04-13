@@ -1,14 +1,18 @@
 from sqlalchemy import (
-    Column, BigInteger, SmallInteger, String, Text, Boolean,
+    Column, BigInteger, Integer, SmallInteger, String, Text, Boolean,
     Date, DateTime, Numeric, ForeignKey
 )
+
+# SQLite only auto-increments INTEGER PRIMARY KEY, not BIGINT.
+# This variant uses INTEGER on SQLite and BIGINT on other databases.
+AutoBigInt = BigInteger().with_variant(Integer, "sqlite")
 from db.database import Base
 
 
 class User(Base):
     __tablename__ = "Users"
 
-    user_id = Column(BigInteger, primary_key=True)
+    user_id = Column(AutoBigInt, primary_key=True)
     name = Column(String(255))
     email = Column(String(320), nullable=False, unique=True)
     password_hash = Column(String(255), nullable=False)
@@ -51,7 +55,7 @@ class UserRole(Base):
 class Session(Base):
     __tablename__ = "Sessions"
 
-    session_id = Column(BigInteger, primary_key=True)
+    session_id = Column(AutoBigInt, primary_key=True)
     user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
     issued_on = Column(DateTime, nullable=False)
     expires_on = Column(DateTime, nullable=False)
@@ -62,7 +66,7 @@ class Session(Base):
 class Budget(Base):
     __tablename__ = "budgets"
 
-    budget_id = Column(BigInteger, primary_key=True)
+    budget_id = Column(AutoBigInt, primary_key=True)
     user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
     period_start = Column(Date, nullable=False)
     period_end = Column(Date, nullable=False)
@@ -74,7 +78,7 @@ class Budget(Base):
 class Category(Base):
     __tablename__ = "categories"
 
-    category_id = Column(BigInteger, primary_key=True)
+    category_id = Column(AutoBigInt, primary_key=True)
     user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
     name = Column(String(120), nullable=False)
     type = Column(Text, nullable=False)
@@ -85,7 +89,7 @@ class Category(Base):
 class Template(Base):
     __tablename__ = "templates"
 
-    template_id = Column(BigInteger, primary_key=True)
+    template_id = Column(AutoBigInt, primary_key=True)
     user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
     name = Column(String(120), nullable=False)
     stage_id = Column(SmallInteger, ForeignKey("lifecycle_stages.stage_id"), nullable=False)
@@ -97,7 +101,7 @@ class Template(Base):
 class TemplateItem(Base):
     __tablename__ = "template_items"
 
-    item_id = Column(BigInteger, primary_key=True)
+    item_id = Column(AutoBigInt, primary_key=True)
     template_id = Column(BigInteger, ForeignKey("templates.template_id"), nullable=False)
     category_id = Column(BigInteger, ForeignKey("categories.category_id"), nullable=False)
     planned_amt = Column(Numeric(12, 2), nullable=False)
@@ -109,7 +113,7 @@ class TemplateItem(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    txn_id = Column(BigInteger, primary_key=True)
+    txn_id = Column(AutoBigInt, primary_key=True)
     budget_id = Column(BigInteger, ForeignKey("budgets.budget_id"), nullable=False)
     category_id = Column(BigInteger, ForeignKey("categories.category_id"), nullable=False)
     amount = Column(Numeric(12, 2), nullable=False)
@@ -122,7 +126,7 @@ class Transaction(Base):
 class Goal(Base):
     __tablename__ = "goals"
 
-    goal_id = Column(BigInteger, primary_key=True)
+    goal_id = Column(AutoBigInt, primary_key=True)
     user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
     name = Column(String(120), nullable=False)
     target_amount = Column(Numeric(12, 2), nullable=False)
@@ -136,7 +140,7 @@ class Goal(Base):
 class GoalFunding(Base):
     __tablename__ = "goal_fundings"
 
-    funding_id = Column(BigInteger, primary_key=True)
+    funding_id = Column(AutoBigInt, primary_key=True)
     goal_id = Column(BigInteger, ForeignKey("goals.goal_id"), nullable=False)
     transaction_id = Column(BigInteger, ForeignKey("transactions.txn_id"))
     amount = Column(Numeric(12, 2), nullable=False)
@@ -160,7 +164,7 @@ class LifecycleStage(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    audit_id = Column(BigInteger, primary_key=True)
+    audit_id = Column(AutoBigInt, primary_key=True)
     actor_user_id = Column(BigInteger, ForeignKey("Users.user_id"))
     action = Column(String(120), nullable=False)
     entity_type = Column(String(120), nullable=False)
@@ -172,7 +176,7 @@ class AuditLog(Base):
 class Notification(Base):
     __tablename__ = "notifications"
 
-    notification_id = Column(BigInteger, primary_key=True)
+    notification_id = Column(AutoBigInt, primary_key=True)
     user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
     type = Column(Text, nullable=False)
     title = Column(String(120), nullable=False)
@@ -185,7 +189,7 @@ class Notification(Base):
 class PasswordReset(Base):
     __tablename__ = "password_resets"
 
-    reset_id = Column(BigInteger, primary_key=True)
+    reset_id = Column(AutoBigInt, primary_key=True)
     user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
     token = Column(String(120), nullable=False)
     issued_on = Column(DateTime, nullable=False)
@@ -197,7 +201,7 @@ class PasswordReset(Base):
 class Feedback(Base):
     __tablename__ = "Feedback"
 
-    feed_id = Column(BigInteger, primary_key=True)
+    feed_id = Column(AutoBigInt, primary_key=True)
     submitted_by_user_id = Column(BigInteger, ForeignKey("Users.user_id"))
     status = Column(Text, nullable=False)
     comments = Column(Text)

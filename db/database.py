@@ -3,8 +3,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_DB_PATH = os.path.join(BASE_DIR, "Database", "CalcuraV1.db")
+DEFAULT_DB_DIR = os.path.join(BASE_DIR, "Database")
+DEFAULT_DB_PATH = os.path.join(DEFAULT_DB_DIR, "CalcuraV1.db")
 DEFAULT_DB_URL = f"sqlite:///{DEFAULT_DB_PATH}"
+
+# Ensure the Database directory exists so SQLite can create the file
+os.makedirs(DEFAULT_DB_DIR, exist_ok=True)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", DEFAULT_DB_URL)
 

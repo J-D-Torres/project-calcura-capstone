@@ -1,41 +1,52 @@
 #Lines 1 - 41 written by Emma Wikingstad
-from fastapi import APIRouter, HTTPException
+#Rewritten to use SQLAlchemy ORM by Jonathan Torres
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from databasev1 import get_connection
-import time
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+
+from db.database import get_db
+from db.models import Permission
 
 router = APIRouter(prefix="/permissions", tags=["Permissions"])
+
 
 class PermissionCreate(BaseModel):
     permission_id: str
     name: str
     description: str | None = None
 
+
 class PermissionUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
 
-def now():
-    return time.strftime("%Y-%m-%d %H:%M:%S")
 
 @router.get("/")
-def list_permissions():
-    conn = get_connection()
-    rows = conn.execute("SELECT * FROM Permissions").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+def list_permissions(session: Session = Depends(get_db)):
+    permissions = session.query(Permission).all()
+    return [
+        {
+            "permission_id": perm.permission_id,
+            "name": perm.name,
+            "description": perm.description,
+            "created_on": str(perm.created_on),
+            "updated_on": str(perm.updated_on),
+        }
+        for perm in permissions
+    ]
+
 
 @router.post("/")
-def create_permission(p: PermissionCreate):
-    conn = get_connection()
-    ts = now()
-    conn.execute(
-        """
-        INSERT INTO Permissions (permission_id, name, description, created_on, updated_on)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (p.permission_id, p.name, p.description, ts, ts)
+def create_permission(perm_data: PermissionCreate, session: Session = Depends(get_db)):
+    timestamp = datetime.now(timezone.utc)
+    new_permission = Permission(
+        permission_id=perm_data.permission_id,
+        name=perm_data.name,
+        description=perm_data.description,
+        created_on=timestamp,
+        updated_on=timestamp,
     )
-    conn.commit()
-    conn.close()
+    session.add(new_permission)
+    session.commit()
     return {"message": "Permission created"}

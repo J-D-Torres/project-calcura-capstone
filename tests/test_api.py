@@ -4,102 +4,46 @@ Tests for the Calcura FastAPI backend.
 Uses TestClient to test API endpoints against an in-memory SQLite database.
 """
 
-import sqlite3
 import pytest
-from unittest.mock import patch, MagicMock
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 from testapp import app
+from db.database import Base, get_db
+import db.models  # registers all ORM models with Base.metadata
 
 
 # -- Fixtures --
 
-DB_URI = "file:test_db?mode=memory&cache=shared"
+@pytest.fixture
+def test_engine():
+    """Create an in-memory SQLite engine with all ORM tables."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    yield engine
+    engine.dispose()
 
 
 @pytest.fixture
-def mock_db():
-    """Create a shared in-memory SQLite database with the required schema."""
-    conn = sqlite3.connect(DB_URI, uri=True, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS Users (
-            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(255),
-            email TEXT NOT NULL,
-            password_hash TEXT NOT NULL,
-            mfa_secret TEXT,
-            age INTEGER,
-            is_active INTEGER DEFAULT 1,
-            created_on TEXT,
-            updated_on TEXT
-        )
-    """)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS budgets (
-            budget_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            period_start TEXT,
-            period_end TEXT,
-            template_id INTEGER,
-            created_on TEXT,
-            updated_on TEXT
-        )
-    """)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS categories (
-            category_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            budget_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            planned_amount REAL DEFAULT 0,
-            created_on TEXT,
-            updated_on TEXT
-        )
-    """)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS roles (
-            role_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            created_on TEXT,
-            updated_on TEXT
-        )
-    """)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS permissions (
-            permission_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            created_on TEXT,
-            updated_on TEXT
-        )
-    """)
-    conn.commit()
-    yield conn
-    # Clean up tables between tests
-    for table in ["Users", "budgets", "categories", "roles", "permissions"]:
-        conn.execute(f"DELETE FROM {table}")
-    conn.commit()
-    conn.close()
+def client(test_engine):
+    """Create a test client with the test database injected."""
+    TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
+    def override_get_db():
+        session = TestingSession()
+        try:
+            yield session
+        finally:
+            session.close()
 
-@pytest.fixture
-def client(mock_db):
-    """Create a test client with a mocked database connection."""
-    def get_mock_connection():
-        conn = sqlite3.connect(DB_URI, uri=True, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        return conn
-
-    with patch("databasev1.get_connection", get_mock_connection):
-        # Patch each router's imported get_connection
-        with patch("routers.users.get_connection", get_mock_connection), \
-             patch("routers.budgets.get_connection", get_mock_connection), \
-             patch("routers.categories.get_connection", get_mock_connection), \
-             patch("routers.roles.get_connection", get_mock_connection), \
-             patch("routers.permissions.get_connection", get_mock_connection), \
-             patch("routers.sessions.get_connection", get_mock_connection), \
-             patch("routers.user_roles.get_connection", get_mock_connection), \
-             patch("routers.templates.get_connection", get_mock_connection), \
-             patch("routers.template_items.get_connection", get_mock_connection):
-            yield TestClient(app)
+    app.dependency_overrides[get_db] = override_get_db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
 
 
 # -- Root endpoint --
