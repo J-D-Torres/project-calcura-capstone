@@ -26,7 +26,7 @@ class User(Base):
 class Role(Base):
     __tablename__ = "Roles"
 
-    role_id = Column(SmallInteger, primary_key=True)
+    role_id = Column(AutoBigInt, primary_key=True)
     name = Column(String(30), nullable=False)
     description = Column(String(255))
     permissions = Column(Text, nullable=False)

@@ -14,7 +14,7 @@ router = APIRouter(prefix="/sessions", tags=["Sessions"])
 
 class SessionCreate(BaseModel):
     user_id: int
-    expires_on: str
+    expires_on: datetime
     ip_address: str | None = None
     user_agent: str | None = None
 
@@ -94,7 +94,7 @@ def login(data: LoginRequest, session: DbSession = Depends(get_db)):
     new_session = SessionModel(
         user_id=user.user_id,
         issued_on=datetime.now(timezone.utc),
-        expires_on="2099-12-31 23:59:59",
+        expires_on=datetime(2099, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
         ip_address=None,
         user_agent=None,
     )
