@@ -21,7 +21,6 @@ export function Footer({ onAboutClick, onContactClick }: FooterProps) {
             <h3 className="text-gray-900 mb-4">Product</h3>
             <ul className="space-y-2">
               <li><a href="#features" className="text-gray-600 hover:text-gray-900">Features</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-900">Security</a></li>
               <li><a href="#" className="text-gray-600 hover:text-gray-900">Updates</a></li>
             </ul>
           </div>
@@ -37,9 +36,6 @@ export function Footer({ onAboutClick, onContactClick }: FooterProps) {
                   About
                 </button>
               </li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-900">Blog</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-900">Careers</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-900">Press</a></li>
             </ul>
           </div>
           
@@ -54,7 +50,7 @@ export function Footer({ onAboutClick, onContactClick }: FooterProps) {
                   Contact Us
                 </button>
               </li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-900">Help Center</a></li>
+              <li><a href="#" className="text-gray-600 hover:text-gray-900">FAQs</a></li>
               <li><a href="#" className="text-gray-600 hover:text-gray-900">Privacy Policy</a></li>
               <li><a href="#" className="text-gray-600 hover:text-gray-900">Terms of Service</a></li>
             </ul>

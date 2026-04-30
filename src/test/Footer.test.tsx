@@ -37,16 +37,16 @@ describe('Footer', () => {
     expect(defaultProps.onContactClick).toHaveBeenCalled();
   });
 
+  // Modified by Jonathan Torres: assertions updated to match the current Footer (Security/Help Center removed, FAQs added)
   it('renders product links', () => {
     render(<Footer {...defaultProps} />);
     expect(screen.getByText('Features')).toBeInTheDocument();
-    expect(screen.getByText('Security')).toBeInTheDocument();
     expect(screen.getByText('Updates')).toBeInTheDocument();
   });
 
   it('renders support links', () => {
     render(<Footer {...defaultProps} />);
-    expect(screen.getByText('Help Center')).toBeInTheDocument();
+    expect(screen.getByText('FAQs')).toBeInTheDocument();
     expect(screen.getByText('Privacy Policy')).toBeInTheDocument();
     expect(screen.getByText('Terms of Service')).toBeInTheDocument();
   });

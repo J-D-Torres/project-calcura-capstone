@@ -1,0 +1,46 @@
+# Jonathan Torres wrote 44 lines of code for this file
+
+# Source control
+.git
+.github
+.gitignore
+
+# Local environments (image installs deps fresh)
+.venv
+venv
+node_modules
+
+# Built artifacts (rebuilt inside the image)
+build
+dist
+
+# Python bytecode
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+
+# Editor / OS junk
+.vscode
+.idea
+.DS_Store
+desktop.ini
+Thumbs.db
+
+# Tests (run on the host in CI, not shipped)
+tests
+src/test
+
+# Documentation (not needed at runtime)
+**/*.md
+
+# Dev scripts and orphan stubs
+setup.sh
+setup.bat
+UnitTests.ts
+src/guidelines
+
+# Env files (would override the build-time VITE_API_URL)
+.env
+.env.local
+.env.*.local

@@ -1,11 +1,12 @@
-/*Jonathan Torres wrote all 242 lines of code for this file */
+/* Jonathan Torres wrote the original version of this file */
+/* Jonathan Torres updated the UI styling and condensed the layout */
 import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Mail, Phone, MapPin, Send, MessageSquare } from "lucide-react";
+import { Mail, Send, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
 /* API URL */
@@ -14,6 +15,14 @@ const API_URL = import.meta.env.VITE_API_URL;
 //remove later
 console.log("API_URL =", API_URL);
 
+interface FaqItem {
+  q: string;
+  a: string;
+}
+
+// FAQ entries will be added here
+const faqs: FaqItem[] = [];
+
 export function ContactPage() {
   const [formData, setFormData] = useState({
     name: "",
@@ -21,29 +30,20 @@ export function ContactPage() {
     phone: "",
     message: ""
   });
+  const [expandFaq, setExpandFaq] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate form
+
     if (!formData.name || !formData.email || !formData.message) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    // Here you would typically send the form data to a backend
     console.log("Contact form submitted:", formData);
-    
-    // Show success message
     toast.success("Thank you for contacting us! We'll get back to you soon.");
-    
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      message: ""
-    });
+
+    setFormData({ name: "", email: "", phone: "", message: "" });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -54,44 +54,66 @@ export function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-teal-50">
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl text-gray-900 mb-4">Contact Us</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Have a question or feedback? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+        <div className="text-center mb-10">
+          <h1 className="text-4xl text-teal-900 mb-3">Contact Us</h1>
+          <div className="w-16 h-1 bg-teal-500 mx-auto rounded-full mb-3" />
+          <p className="text-lg text-gray-600 max-w-xl mx-auto">
+            Have a question or feedback? We'd love to hear from you.
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Contact Information */}
-          <div className="lg:col-span-1 space-y-6">
-            <Card className="p-6">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-6 h-6 text-green-600" />
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Sidebar - Contact Info + FAQ */}
+          <div className="space-y-5">
+            <Card className="p-6 border-l-4 border-l-teal-400">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Mail className="w-5 h-5 text-teal-600" />
                 </div>
-                <div>
-                  <h3 className="text-lg text-gray-900 mb-1">Email</h3>
-                  <p className="text-sm text-gray-600">support@calcura.com</p>
-                  <p className="text-sm text-gray-600">hello@calcura.com</p>
-                </div>
+                <h3 className="text-base font-semibold text-gray-900">Email</h3>
               </div>
+              <p className="text-sm text-gray-600 ml-[52px]">support@calcura.com</p>
+              <p className="text-sm text-gray-600 ml-[52px]">hello@calcura.com</p>
             </Card>
 
-            <Card className="p-6 bg-gradient-to-br from-green-50 to-blue-50">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="w-6 h-6 text-white" />
+            <Card className="p-6 bg-gradient-to-br from-teal-50 to-cyan-50 border-l-4 border-l-teal-400">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center shrink-0">
+                  <MessageSquare className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-lg text-gray-900 mb-2">Quick Response</h3>
-                  <p className="text-sm text-gray-600">
-                    We typically respond to all inquiries within 24 hours during business days.
-                  </p>
-                </div>
+                <h3 className="text-base font-semibold text-gray-900">Quick Response</h3>
               </div>
+              <p className="text-sm text-gray-600 ml-[52px]">
+                We typically respond within 24 hours on business days.
+              </p>
+            </Card>
+
+            {/* Collapsible FAQ */}
+            <Card className="p-6">
+              <button
+                onClick={() => setExpandFaq(!expandFaq)}
+                className="flex items-center justify-between w-full"
+              >
+                <h3 className="text-sm font-semibold text-gray-900">FAQ</h3>
+                {expandFaq ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+              </button>
+              {expandFaq && (
+                <div className="mt-3 space-y-3">
+                  {faqs.length > 0 ? (
+                    faqs.map((faq) => (
+                      <div key={faq.q}>
+                        <h4 className="text-xs font-medium text-gray-900">{faq.q}</h4>
+                        <p className="text-xs text-gray-600 mt-0.5">{faq.a}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-400">FAQ entries coming soon.</p>
+                  )}
+                </div>
+              )}
             </Card>
           </div>
 
@@ -99,41 +121,43 @@ export function ContactPage() {
           <div className="lg:col-span-2">
             <Card className="p-8">
               <h2 className="text-2xl text-gray-900 mb-6">Send us a Message</h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <Label htmlFor="name">
-                    Full Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="John Doe"
-                    className="mt-1"
-                    required
-                  />
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">
+                      Full Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="John Doe"
+                      className="mt-1"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email">
+                      Email <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="john@example.com"
+                      className="mt-1"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="email">
-                    Email Address <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="john.doe@example.com"
-                    className="mt-1"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="phone">Phone Number (Optional)</Label>
+                  <Label htmlFor="phone">Phone (Optional)</Label>
                   <Input
                     id="phone"
                     name="phone"
@@ -154,63 +178,29 @@ export function ContactPage() {
                     name="message"
                     value={formData.message}
                     onChange={handleChange}
-                    placeholder="Tell us how we can help you..."
-                    className="mt-1 min-h-[200px]"
+                    placeholder="Tell us how we can help..."
+                    className="mt-1 min-h-[150px]"
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Please include as much detail as possible so we can better assist you.
-                  </p>
                 </div>
 
                 <div className="flex gap-3">
-                  <Button 
-                    type="submit" 
-                    className="bg-green-600 hover:bg-green-700 gap-2"
+                  <Button
+                    type="submit"
+                    className="bg-teal-600 hover:bg-teal-700 gap-2"
                   >
-                    <Send size={18} />
+                    <Send size={16} />
                     Send Message
                   </Button>
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     variant="outline"
                     onClick={() => setFormData({ name: "", email: "", phone: "", message: "" })}
                   >
-                    Clear Form
+                    Clear
                   </Button>
                 </div>
               </form>
-            </Card>
-
-            {/* FAQ Section */}
-            <Card className="p-8 mt-6">
-              <h3 className="text-xl text-gray-900 mb-4">Frequently Asked Questions</h3>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-gray-900 mb-1">How quickly will I receive a response?</h4>
-                  <p className="text-sm text-gray-600">
-                    We aim to respond to all inquiries within 24 hours during business days (Monday-Friday).
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-gray-900 mb-1">Is Calcura really free?</h4>
-                  <p className="text-sm text-gray-600">
-                    Yes! Calcura is completely free with no hidden fees or subscription costs.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-gray-900 mb-1">How is my data protected?</h4>
-                  <p className="text-sm text-gray-600">
-                    We use industry-standard encryption and security measures to protect your financial data. Visit our Privacy Policy for more details.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-gray-900 mb-1">Can I suggest new features?</h4>
-                  <p className="text-sm text-gray-600">
-                    Absolutely! We love hearing from our users. Use this contact form to share your ideas and feature requests.
-                  </p>
-                </div>
-              </div>
             </Card>
           </div>
         </div>

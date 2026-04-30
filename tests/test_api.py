@@ -8,7 +8,8 @@ import sqlite3
 import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
-from testapp import app
+# Modified by Jonathan Torres: renamed testapp -> main
+from main import app
 
 
 # -- Fixtures --
@@ -101,15 +102,7 @@ def client(mock_db):
              patch("routers.template_items.get_connection", get_mock_connection):
             yield TestClient(app)
 
-
-# -- Root endpoint --
-
-class TestRoot:
-    def test_root_returns_welcome(self, client):
-        response = client.get("/")
-        assert response.status_code == 200
-        assert response.json() == {"message": "Welcome to the Calcura API"}
-
+# Modified by Jonathan Torres to remove Root endpoint tests since it was removed from the API. If we want to add it back, we can add tests for it here.
 
 # -- Users --
 

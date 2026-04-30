@@ -75,13 +75,32 @@ class UserUpdate(BaseModel):
 @router.delete("/{user_id}")
 def delete_user(user_id: int):
     conn = get_connection()
-    cursor = conn.execute("DELETE FROM Users WHERE user_id = ?", (user_id,))
-    deleted = cursor.rowcount
+
+    existing = conn.execute("SELECT 1 FROM Users WHERE user_id = ?", (user_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Delete template_items for all templates owned by this user
+    template_rows = conn.execute(
+        "SELECT template_id FROM templates WHERE user_id = ?", (user_id,)
+    ).fetchall()
+    for row in template_rows:
+        conn.execute(
+            "DELETE FROM template_items WHERE template_id = ?", (row["template_id"],)
+        )
+
+    # Delete all templates owned by this user
+    conn.execute("DELETE FROM templates WHERE user_id = ?", (user_id,))
+
+    # Delete all goals owned by this user
+    conn.execute("DELETE FROM goals WHERE user_id = ?", (user_id,))
+
+    # Delete the user
+    conn.execute("DELETE FROM Users WHERE user_id = ?", (user_id,))
+
     conn.commit()
     conn.close()
-
-    if deleted == 0:
-        raise HTTPException(status_code=404, detail="User not found")
 
     return {"message": "User deleted successfully"}
 
