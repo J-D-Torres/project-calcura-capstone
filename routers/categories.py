@@ -1,8 +1,12 @@
 #lines 1 - 103 written by Emma Wikingstad
-from fastapi import APIRouter, HTTPException
+#Rewritten to use SQLAlchemy ORM by Jonathan Torres
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, field_validator
-from databasev1 import get_connection
-import time
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+
+from db.database import get_db
+from db.models import Category
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
 
@@ -15,89 +19,101 @@ VALID_CATEGORY_TYPES = {
     "retirement"
 }
 
+
 class CategoryCreate(BaseModel):
     user_id: int
     name: str
     type: str
 
     @field_validator("type")
-    def validate_type(cls, v):
-        if v not in VALID_CATEGORY_TYPES:
+    def validate_type(cls, value):
+        if value not in VALID_CATEGORY_TYPES:
             raise ValueError("Type must be one of the following: income, expenses, savings, investments, debt, retirement")
-        return v
+        return value
+
 
 class CategoryUpdate(BaseModel):
     name: str | None = None
     type: str | None = None
 
     @field_validator("type")
-    def validate_type(cls, v):
-        if v is not None and v not in VALID_CATEGORY_TYPES:
+    def validate_type(cls, value):
+        if value is not None and value not in VALID_CATEGORY_TYPES:
             raise ValueError("Type must be one of the following: income, expenses, savings, investments, debt, retirement")
-        return v
+        return value
 
-def now():
-    return time.strftime("%Y-%m-%d %H:%M:%S")
 
 @router.get("/")
-def list_categories():
-    conn = get_connection()
-    rows = conn.execute("SELECT * FROM categories").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+def list_categories(session: Session = Depends(get_db)):
+    categories = session.query(Category).all()
+    return [
+        {
+            "category_id": category.category_id,
+            "user_id": category.user_id,
+            "name": category.name,
+            "type": category.type,
+            "created_on": str(category.created_on),
+            "updated_on": str(category.updated_on),
+        }
+        for category in categories
+    ]
+
 
 @router.post("/")
-def create_category(c: CategoryCreate):
-    conn = get_connection()
-    ts = now()
-    conn.execute(
-        """
-        INSERT INTO categories (user_id, name, type, created_on, updated_on)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (c.user_id, c.name, c.type, ts, ts)
+def create_category(category_data: CategoryCreate, session: Session = Depends(get_db)):
+    timestamp = datetime.now(timezone.utc)
+    new_category = Category(
+        user_id=category_data.user_id,
+        name=category_data.name,
+        type=category_data.type,
+        created_on=timestamp,
+        updated_on=timestamp,
     )
-    conn.commit()
-    conn.close()
-    return {"message": f"Category '{c.name}' created under '{c.type}'"}
+    session.add(new_category)
+    session.commit()
+    return {"message": f"Category '{category_data.name}' created under '{category_data.type}'"}
+
 
 @router.get("/{category_id}")
-def get_category(category_id: int):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM categories WHERE category_id = ?", (category_id,)).fetchone()
-    conn.close()
-    if not row:
+def get_category(category_id: int, session: Session = Depends(get_db)):
+    category = session.query(Category).filter(Category.category_id == category_id).first()
+    if not category:
         raise HTTPException(404, "Category not found")
-    return dict(row)
+    return {
+        "category_id": category.category_id,
+        "user_id": category.user_id,
+        "name": category.name,
+        "type": category.type,
+        "created_on": str(category.created_on),
+        "updated_on": str(category.updated_on),
+    }
+
 
 @router.put("/{category_id}")
-def update_category(category_id: int, update: CategoryUpdate):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM categories WHERE category_id = ?", (category_id,)).fetchone()
-    if not row:
-        conn.close()
+def update_category(category_id: int, update: CategoryUpdate, session: Session = Depends(get_db)):
+    category = session.query(Category).filter(Category.category_id == category_id).first()
+    if not category:
         raise HTTPException(404, "Category not found")
 
-    current = dict(row)
-    new_name = update.name or current["name"]
-    new_type = update.type or current["type"]
+    if update.name is not None:
+        category.name = update.name
+    if update.type is not None:
+        category.type = update.type
 
-    conn.execute(
-        """
-        UPDATE categories
-        SET name = ?, type = ?, updated_on = ?
-        WHERE category_id = ?
-        """,
-        (new_name, new_type, now(), category_id)
-    )
-    conn.commit()
-    conn.close()
+    category.updated_on = datetime.now(timezone.utc)
+    session.commit()
+
+    new_name = category.name
+    new_type = category.type
     return {"message": f"Category updated to '{new_name}' ({new_type})"}
 
+
 @router.delete("/{category_id}")
-def delete_category(category_id: int):
-    conn = get_connection()
-    conn.execute("DELETE FROM categories WHERE category_id = ?", (category_id,))
-    conn.commit()
-    conn.close()
+def delete_category(category_id: int, session: Session = Depends(get_db)):
+    category = session.query(Category).filter(Category.category_id == category_id).first()
+    if not category:
+        raise HTTPException(404, "Category not found")
+
+    session.delete(category)
+    session.commit()
     return {"message": "Category deleted"}

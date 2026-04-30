@@ -13,10 +13,10 @@ from db.models import (
 )
 
 EXPECTED_TABLES = [
-    "Users", "Roles", "Permissions", "User_Roles", "Sessions",
+    "users", "roles", "permissions", "user_roles", "sessions",
     "budgets", "categories", "templates", "template_items",
     "transactions", "goals", "goal_fundings", "lifecycle_stages",
-    "audit_logs", "notifications", "password_resets", "Feedback"
+    "audit_logs", "notifications", "password_resets", "feedback"
 ]
 
 
@@ -109,7 +109,8 @@ class TestModelColumns:
 
     def test_goal_columns(self):
         columns = self._get_column_names(Goal)
-        expected = {"goal_id", "user_id", "name", "target_amount", "target_date", "priority", "status", "created_on", "updated_on"}
+        expected = {"goal_id", "user_id", "name", "target_amount", "target_date", "priority", "status",
+                    "apr", "down_payment", "interest", "goal_type", "created_on", "updated_on"}
         assert columns == expected
 
     def test_goal_funding_columns(self):
@@ -156,25 +157,25 @@ class TestForeignKeys:
 
     def test_user_role_foreign_keys(self):
         targets = self._get_foreign_key_targets(UserRole)
-        assert "Users.user_id" in targets
-        assert "Roles.role_id" in targets
+        assert "users.user_id" in targets
+        assert "roles.role_id" in targets
 
     def test_session_foreign_keys(self):
         targets = self._get_foreign_key_targets(Session)
-        assert "Users.user_id" in targets
+        assert "users.user_id" in targets
 
     def test_budget_foreign_keys(self):
         targets = self._get_foreign_key_targets(Budget)
-        assert "Users.user_id" in targets
+        assert "users.user_id" in targets
         assert "templates.template_id" in targets
 
     def test_category_foreign_keys(self):
         targets = self._get_foreign_key_targets(Category)
-        assert "Users.user_id" in targets
+        assert "users.user_id" in targets
 
     def test_template_foreign_keys(self):
         targets = self._get_foreign_key_targets(Template)
-        assert "Users.user_id" in targets
+        assert "users.user_id" in targets
         assert "lifecycle_stages.stage_id" in targets
 
     def test_template_item_foreign_keys(self):
@@ -189,7 +190,7 @@ class TestForeignKeys:
 
     def test_goal_foreign_keys(self):
         targets = self._get_foreign_key_targets(Goal)
-        assert "Users.user_id" in targets
+        assert "users.user_id" in targets
 
     def test_goal_funding_foreign_keys(self):
         targets = self._get_foreign_key_targets(GoalFunding)
@@ -198,16 +199,16 @@ class TestForeignKeys:
 
     def test_audit_log_foreign_keys(self):
         targets = self._get_foreign_key_targets(AuditLog)
-        assert "Users.user_id" in targets
+        assert "users.user_id" in targets
 
     def test_notification_foreign_keys(self):
         targets = self._get_foreign_key_targets(Notification)
-        assert "Users.user_id" in targets
+        assert "users.user_id" in targets
 
     def test_password_reset_foreign_keys(self):
         targets = self._get_foreign_key_targets(PasswordReset)
-        assert "Users.user_id" in targets
+        assert "users.user_id" in targets
 
     def test_feedback_foreign_keys(self):
         targets = self._get_foreign_key_targets(Feedback)
-        assert "Users.user_id" in targets
+        assert "users.user_id" in targets

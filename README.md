@@ -21,7 +21,7 @@ Built as an IT Capstone project at Liberty University (Fall 2025 – Spring 2026
 | Layer | Tools |
 |---|---|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, Radix UI, Recharts |
-| Backend | FastAPI, Python 3.12, SQLite |
+| Backend | FastAPI, Python 3.12, SQLAlchemy ORM (SQLite, Postgres, MySQL) |
 | Testing | Vitest + React Testing Library (frontend), pytest + FastAPI TestClient (backend) |
 | CI/CD | GitHub Actions |
 | Registry | GitHub Container Registry (GHCR) |
@@ -79,21 +79,52 @@ docker build -t calcura .
 docker run -p 8000:8000 calcura
 ```
 
+## Database
+
+The backend talks to its database through SQLAlchemy, so the same Docker image works with SQLite, Postgres, or MySQL — only the connection string changes. The database choice is controlled by the `DATABASE_URL` environment variable. If it's unset, the app falls back to a local SQLite file at `Database/CalcuraV1.db`.
+
+```bash
+# SQLite (default — zero config, good for local dev)
+uvicorn main:app --reload
+
+# Postgres
+export DATABASE_URL=postgresql://user:pass@host:5432/dbname
+uvicorn main:app --reload
+
+# MySQL
+export DATABASE_URL=mysql+pymysql://user:pass@host:3306/dbname
+uvicorn main:app --reload
+```
+
+**Schema is created on first start.** The app calls `Base.metadata.create_all()` at boot, which adds any missing tables and leaves existing ones alone. So pointing at a fresh empty database creates the schema; pointing at a database that already has data just uses what's there.
+
+**Data stays in its flavor.** Postgres files only work with Postgres, SQLite files only work with SQLite — moving data between engines means dumping from one and importing into the other with a tool that translates the SQL dialects.
+
+**`docker compose up --build`** brings up the API together with a Postgres container, healthcheck-gated so the API waits for the database to be ready. The `pgdata` named volume keeps the database between restarts; `docker compose down -v` wipes it for a clean slate.
+
+**Seed data.** On container start (or by running `python -m db.seed` manually) the database is populated with lifecycle stages, admin/user roles, and two default users:
+
+- `admin@calcura.com` / `admin123` (admin role)
+- `test@calcura.com` / `test123` (regular user)
+
+Dev defaults — replace before any real deployment.
+
 ## Project Structure
 
 ```
 project-calcura-capstone/
 ├── main.py                 # FastAPI entry point (serves API + built frontend)
-├── databasev1.py           # SQLite connection helper
+├── db/                     # SQLAlchemy engine, ORM models, seed script
 ├── deploy.sh               # Production deploy script (bare-metal)
 ├── setup.sh / setup.bat    # Dev setup scripts (Linux/macOS / Windows)
 ├── Dockerfile              # Multi-stage Node + Python build
+├── docker-compose.yml      # API + Postgres stack for local/full-stack runs
 ├── requirements.txt        # Python dependencies
 ├── package.json            # Frontend dependencies and scripts
 ├── .env                    # Dev env vars (VITE_API_URL=http://localhost:8000)
 ├── .env.production         # Build-time env vars for prod (VITE_API_URL="")
 ├── routers/                # FastAPI routers (users, budgets, goals, ...)
-├── Database/               # SQLite database file
+├── Database/               # Local SQLite path (created on first run; gitignored)
 ├── src/
 │   ├── App.tsx             # Top-level routing / page state
 │   ├── components/         # All React pages and widgets
@@ -131,6 +162,7 @@ The API exposes the following resources:
 |---|---|---|---|
 | `VITE_API_URL` | `.env` | Vite (dev) | Backend URL for the frontend in dev (`http://localhost:8000`) |
 | `VITE_API_URL` | `.env.production` | Vite (build) | Empty string — production builds use same-origin paths since FastAPI serves the frontend |
+| `DATABASE_URL` | shell / compose / deploy env | FastAPI backend | SQLAlchemy connection string. Unset → local SQLite at `Database/CalcuraV1.db`. Set to `postgresql://...`, `mysql+pymysql://...`, or `sqlite:///path` to point at any backend. |
 
 `VITE_*` values are baked into the JS bundle at build time, not read at runtime.
 

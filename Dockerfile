@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1.7
-# Jonathan Torres wrote 28 lines of code for this file
 
-FROM node:20-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -20,10 +19,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py databasev1.py ./
+COPY main.py ./
+COPY db ./db
 COPY routers ./routers
-COPY Database ./Database
 COPY --from=frontend-builder /app/build ./build
 
 EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["sh", "-c", "python -m db.seed && uvicorn main:app --host 0.0.0.0 --port 8000"]
