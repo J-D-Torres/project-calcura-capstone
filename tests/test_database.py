@@ -8,14 +8,21 @@ import pytest
 from unittest.mock import patch
 from sqlalchemy import text
 
+# These two assertions describe the SQLite fallback path. When CI points
+# DATABASE_URL at Postgres, the fallback is intentionally bypassed.
+_DATABASE_URL_ENV = os.environ.get("DATABASE_URL", "")
+NON_SQLITE_BACKEND = bool(_DATABASE_URL_ENV) and not _DATABASE_URL_ENV.startswith("sqlite")
+
 
 class TestDefaultConfig:
     """Tests for default configuration when no DATABASE_URL is set."""
 
+    @pytest.mark.skipif(NON_SQLITE_BACKEND, reason="Covers SQLite fallback only")
     def test_default_url_is_sqlite(self):
         from db.database import DATABASE_URL
         assert DATABASE_URL.startswith("sqlite:///")
 
+    @pytest.mark.skipif(NON_SQLITE_BACKEND, reason="Covers SQLite fallback only")
     def test_default_url_points_to_calcura_db(self):
         from db.database import DATABASE_URL
         assert "CalcuraV1.db" in DATABASE_URL

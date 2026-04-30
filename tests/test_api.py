@@ -4,6 +4,7 @@ Tests for the Calcura FastAPI backend.
 Uses TestClient to test API endpoints against an in-memory SQLite database.
 """
 
+import os
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -18,14 +19,25 @@ import db.models  # registers all ORM models with Base.metadata
 
 @pytest.fixture
 def test_engine():
-    """Create an in-memory SQLite engine with all ORM tables."""
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    """Create a test database engine.
+
+    When DATABASE_URL set to a non-SQLite backend (used by the Postgres CI job)
+    so the same suite exercises real Postgres semantics. Falls back to in-memory SQLite
+    for fast local runs. Schema is dropped and recreated per test for isolation.
+    """
+    database_url = os.environ.get("DATABASE_URL", "")
+    if database_url and not database_url.startswith("sqlite"):
+        engine = create_engine(database_url)
+    else:
+        engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     yield engine
+    Base.metadata.drop_all(bind=engine)
     engine.dispose()
 
 
