@@ -21,7 +21,8 @@ echo.
 
 :: Start backend in a separate window
 echo Starting backend on http://localhost:8000 ...
-start "Calcura Backend" cmd /k "call .venv\Scripts\activate.bat && uvicorn testapp:app --reload"
+:: Modified by Jonathan Torres: renamed testapp -> main
+start "Calcura Backend" cmd /k "call .venv\Scripts\activate.bat && uvicorn main:app --reload"
 
 :: Start frontend (blocks until Ctrl+C)
 echo Starting frontend on http://localhost:3000 ...

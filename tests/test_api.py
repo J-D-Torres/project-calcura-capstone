@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
-from testapp import app
+from main import app
 from db.database import Base, get_db
 import db.models  # registers all ORM models with Base.metadata
 

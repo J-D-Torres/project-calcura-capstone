@@ -56,6 +56,7 @@ export function LoginPage({
       //Store session tokens here? 
       localStorage.setItem("user_id", data.user_id);
       localStorage.setItem("email", data.email);
+      localStorage.setItem("username", data.name ?? "");
 
       onLoginSuccess?.();
 

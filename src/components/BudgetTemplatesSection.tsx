@@ -1,4 +1,5 @@
-/* Joseph St.John write all 96 lines of code for this file */
+/* Joseph St.John wrote the original version of this file */
+/* Jonathan Torres updated the UI styling */
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Sparkles, Briefcase, Palmtree } from "lucide-react";
@@ -57,37 +58,38 @@ interface BudgetTemplatesSectionProps {
 
 export function BudgetTemplatesSection({ onSelectTemplate }: BudgetTemplatesSectionProps) {
   return (
-    <section id="templates" className="py-20 bg-gray-50">
+    <section id="templates" className="py-20 bg-gradient-to-b from-green-50 to-white">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-gray-900 mb-4">Budget Templates</h2>
-          <p className="text-gray-600 text-xl">
+          <h2 className="text-3xl font-bold text-green-900 mb-3">Budget Templates</h2>
+          <div className="w-16 h-1 bg-green-500 mx-auto rounded-full mb-4" />
+          <p className="text-gray-600 text-lg">
             Choose the template that matches your life stage
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {templates.map((template) => {
             const Icon = template.icon;
             return (
               <Card key={template.id} className="p-8 bg-white hover:shadow-lg transition-shadow">
-                <div className={`inline-flex items-center justify-center w-16 h-16 ${template.color} rounded-2xl mb-6`}>
-                  <Icon className="w-8 h-8 text-white" />
+                <div className={`inline-flex items-center justify-center w-14 h-14 ${template.color} rounded-xl mb-5`}>
+                  <Icon className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-gray-900 mb-3">{template.title}</h3>
-                <p className="text-gray-600 mb-6">{template.description}</p>
-                
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">{template.title}</h3>
+                <p className="text-gray-600 mb-5">{template.description}</p>
+
                 <ul className="space-y-2 mb-6">
                   {template.services.map((service, index) => (
-                    <li key={index} className="text-gray-700 flex items-start gap-2">
-                      <span className="text-green-600 mt-1">•</span>
+                    <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
+                      <span className="text-green-600 mt-0.5">•</span>
                       <span>{service}</span>
                     </li>
                   ))}
                 </ul>
-                
-                <Button 
-                  variant="outline" 
+
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={onSelectTemplate}
                 >

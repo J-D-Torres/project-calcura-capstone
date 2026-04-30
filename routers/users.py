@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import hashlib
 
 from db.database import get_db
-from db.models import User
+from db.models import User, Template, TemplateItem, Goal
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -25,7 +25,6 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
-
 
 class LoginRequest(BaseModel):
     email: str
@@ -87,6 +86,16 @@ def delete_user(user_id: int, session: Session = Depends(get_db)):
     user = session.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # Cascade through user-owned data so FK constraints don't block the delete.
+    template_ids = [
+        template.template_id
+        for template in session.query(Template).filter(Template.user_id == user_id).all()
+    ]
+    if template_ids:
+        session.query(TemplateItem).filter(TemplateItem.template_id.in_(template_ids)).delete(synchronize_session=False)
+    session.query(Template).filter(Template.user_id == user_id).delete(synchronize_session=False)
+    session.query(Goal).filter(Goal.user_id == user_id).delete(synchronize_session=False)
 
     session.delete(user)
     session.commit()
