@@ -19,7 +19,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py databasev1.py ./
+COPY main.py ./
 COPY db ./db
 COPY routers ./routers
 COPY --from=frontend-builder /app/build ./build

@@ -133,6 +133,10 @@ class Goal(Base):
     target_date = Column(Date)
     priority = Column(SmallInteger)
     status = Column(Text, nullable=False)
+    apr = Column(Numeric(7, 4))
+    down_payment = Column(Numeric(12, 2))
+    interest = Column(Numeric(12, 4))
+    goal_type = Column(String(40))
     created_on = Column(DateTime, nullable=False)
     updated_on = Column(DateTime, nullable=False)
 

@@ -109,7 +109,8 @@ class TestModelColumns:
 
     def test_goal_columns(self):
         columns = self._get_column_names(Goal)
-        expected = {"goal_id", "user_id", "name", "target_amount", "target_date", "priority", "status", "created_on", "updated_on"}
+        expected = {"goal_id", "user_id", "name", "target_amount", "target_date", "priority", "status",
+                    "apr", "down_payment", "interest", "goal_type", "created_on", "updated_on"}
         assert columns == expected
 
     def test_goal_funding_columns(self):
