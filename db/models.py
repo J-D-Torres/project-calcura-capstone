@@ -10,7 +10,7 @@ from db.database import Base
 
 
 class User(Base):
-    __tablename__ = "Users"
+    __tablename__ = "users"
 
     user_id = Column(AutoBigInt, primary_key=True)
     name = Column(String(255))
@@ -24,7 +24,7 @@ class User(Base):
 
 
 class Role(Base):
-    __tablename__ = "Roles"
+    __tablename__ = "roles"
 
     role_id = Column(AutoBigInt, primary_key=True)
     name = Column(String(30), nullable=False)
@@ -35,7 +35,7 @@ class Role(Base):
 
 
 class Permission(Base):
-    __tablename__ = "Permissions"
+    __tablename__ = "permissions"
 
     permission_id = Column(Text, primary_key=True)
     name = Column(String(30), nullable=False)
@@ -45,18 +45,18 @@ class Permission(Base):
 
 
 class UserRole(Base):
-    __tablename__ = "User_Roles"
+    __tablename__ = "user_roles"
 
-    user_id = Column(BigInteger, ForeignKey("Users.user_id"), primary_key=True)
-    role_id = Column(SmallInteger, ForeignKey("Roles.role_id"), primary_key=True)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), primary_key=True)
+    role_id = Column(SmallInteger, ForeignKey("roles.role_id"), primary_key=True)
     updated_on = Column(DateTime, nullable=False)
 
 
 class Session(Base):
-    __tablename__ = "Sessions"
+    __tablename__ = "sessions"
 
     session_id = Column(AutoBigInt, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     issued_on = Column(DateTime, nullable=False)
     expires_on = Column(DateTime, nullable=False)
     ip_address = Column(String(45))
@@ -67,7 +67,7 @@ class Budget(Base):
     __tablename__ = "budgets"
 
     budget_id = Column(AutoBigInt, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     period_start = Column(Date, nullable=False)
     period_end = Column(Date, nullable=False)
     template_id = Column(BigInteger, ForeignKey("templates.template_id"))
@@ -79,7 +79,7 @@ class Category(Base):
     __tablename__ = "categories"
 
     category_id = Column(AutoBigInt, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     name = Column(String(120), nullable=False)
     type = Column(Text, nullable=False)
     created_on = Column(DateTime, nullable=False)
@@ -90,7 +90,7 @@ class Template(Base):
     __tablename__ = "templates"
 
     template_id = Column(AutoBigInt, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     name = Column(String(120), nullable=False)
     stage_id = Column(SmallInteger, ForeignKey("lifecycle_stages.stage_id"), nullable=False)
     is_default = Column(Boolean, nullable=False)
@@ -127,7 +127,7 @@ class Goal(Base):
     __tablename__ = "goals"
 
     goal_id = Column(AutoBigInt, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     name = Column(String(120), nullable=False)
     target_amount = Column(Numeric(12, 2), nullable=False)
     target_date = Column(Date)
@@ -165,7 +165,7 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     audit_id = Column(AutoBigInt, primary_key=True)
-    actor_user_id = Column(BigInteger, ForeignKey("Users.user_id"))
+    actor_user_id = Column(BigInteger, ForeignKey("users.user_id"))
     action = Column(String(120), nullable=False)
     entity_type = Column(String(120), nullable=False)
     entity_id = Column(BigInteger)
@@ -177,7 +177,7 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     notification_id = Column(AutoBigInt, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     type = Column(Text, nullable=False)
     title = Column(String(120), nullable=False)
     body = Column(Text)
@@ -190,7 +190,7 @@ class PasswordReset(Base):
     __tablename__ = "password_resets"
 
     reset_id = Column(AutoBigInt, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey("Users.user_id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), nullable=False)
     token = Column(String(120), nullable=False)
     issued_on = Column(DateTime, nullable=False)
     expires_on = Column(DateTime, nullable=False)
@@ -199,12 +199,12 @@ class PasswordReset(Base):
 
 
 class Feedback(Base):
-    __tablename__ = "Feedback"
+    __tablename__ = "feedback"
 
     feed_id = Column(AutoBigInt, primary_key=True)
-    submitted_by_user_id = Column(BigInteger, ForeignKey("Users.user_id"))
+    submitted_by_user_id = Column(BigInteger, ForeignKey("users.user_id"))
     status = Column(Text, nullable=False)
     comments = Column(Text)
-    assigned_admin_user_id = Column(BigInteger, ForeignKey("Users.user_id"))
+    assigned_admin_user_id = Column(BigInteger, ForeignKey("users.user_id"))
     created_on = Column(DateTime, nullable=False)
     updated_on = Column(DateTime, nullable=False)
